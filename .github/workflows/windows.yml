@@ -16,7 +16,7 @@ jobs:
           arch: x64
       - name: Restore static Qt
         id: qt-cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: C:\qt-static
           key: qt-static-6.8.3-msvc2022-x64-mt-v1
@@ -25,9 +25,10 @@ jobs:
         shell: pwsh
         run: |
           $archive = "qtbase-everywhere-src-$env:QT_VERSION.tar.xz"
-          $url = "https://download.qt.io/official_releases/qt/6.8/$env:QT_VERSION/submodules/$archive"
+          $url = "https://download.qt.io/archive/qt/6.8/$env:QT_VERSION/submodules/$archive"
           curl.exe --fail --location --retry 3 --output $archive $url
           if ($LASTEXITCODE -ne 0) { throw 'Qt download failed' }
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne '56001b905601bb9023d399f3ba780d7fa940f3e4861e496a7c490331f49e0b80') { throw 'Qt checksum mismatch' }
           tar -xf $archive
           if ($LASTEXITCODE -ne 0) { throw 'Qt extraction failed' }
           New-Item -ItemType Directory qt-build | Out-Null
@@ -39,6 +40,12 @@ jobs:
           cmake --install .
           if ($LASTEXITCODE -ne 0) { throw 'Qt install failed' }
           Pop-Location
+      - name: Cache static Qt
+        if: steps.qt-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: C:\qt-static
+          key: qt-static-6.8.3-msvc2022-x64-mt-v1
       - name: Configure application
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$env:QT_STATIC" -DVOIDTUNNEL_STATIC_RUNTIME=ON
       - name: Build application

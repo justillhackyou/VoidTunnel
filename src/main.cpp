@@ -384,7 +384,7 @@ public:
             box.setTextFormat(Qt::RichText);
             box.setText(QString("VoidTunnel 1.0<br>Built with Qt %1 (LGPLv3).<br><br>"
                         "<a href='https://github.com/justillhackyou/VoidTunnel'>Application source and build scripts</a><br>"
-                        "<a href='https://download.qt.io/official_releases/qt/6.8/6.8.3/submodules/qtbase-everywhere-src-6.8.3.tar.xz'>Qt source code</a><br>"
+                        "<a href='https://download.qt.io/archive/qt/6.8/6.8.3/submodules/qtbase-everywhere-src-6.8.3.tar.xz'>Qt source code</a><br>"
                         "<a href='https://doc.qt.io/qt-6/licenses-used-in-qt.html'>Qt third-party notices</a><br><br>"
                         "You may rebuild and relink VoidTunnel with a modified Qt.").arg(qVersion()));
             QString text;
