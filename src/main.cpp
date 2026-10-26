@@ -660,11 +660,15 @@ int main(int argc, char **argv) {
     if (qEnvironmentVariable("VOIDTUNNEL_ASKPASS") == "1") {
         QCoreApplication app(argc, argv); return askpass();
     }
+    for (int i = 1; i < argc; ++i) {
+        if (QByteArray(argv[i]) == "--self-test") {
+            QCoreApplication app(argc, argv); return selfTest();
+        }
+    }
     QApplication app(argc, argv);
     QCoreApplication::setOrganizationName("VoidTunnel");
     QCoreApplication::setApplicationName("VoidTunnel");
     QCoreApplication::setApplicationVersion("1.0.0");
-    if (app.arguments().contains("--self-test")) return selfTest();
     if (!QDir().mkpath(dataDirectory())) {
         QMessageBox::critical(nullptr, "VoidTunnel", "Could not create data directory: " + dataDirectory()); return 1;
     }
