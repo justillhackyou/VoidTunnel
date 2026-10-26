@@ -1,24 +1,60 @@
-name: Windows build
+name: Windows portable EXE
 on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022
+    timeout-minutes: 90
+    env:
+      QT_VERSION: 6.8.3
+      QT_STATIC: C:\qt-static
     steps:
       - uses: actions/checkout@v4
-      - uses: jurplel/install-qt-action@v4
+      - uses: ilammy/msvc-dev-cmd@v1
         with:
-          version: '6.8.3'
-          arch: win64_msvc2022_64
-          cache: true
-      - name: Configure
-        run: cmake -S . -B build -A x64
-      - name: Build
-        run: cmake --build build --config Release --parallel
-      - name: Deploy Qt
-        run: windeployqt --release --no-translations --no-compiler-runtime build/Release/VoidTunnel.exe
+          arch: x64
+      - name: Restore static Qt
+        id: qt-cache
+        uses: actions/cache@v4
+        with:
+          path: C:\qt-static
+          key: qt-static-6.8.3-msvc2022-x64-mt-v1
+      - name: Build static Qt
+        if: steps.qt-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $archive = "qtbase-everywhere-src-$env:QT_VERSION.tar.xz"
+          $url = "https://download.qt.io/official_releases/qt/6.8/$env:QT_VERSION/submodules/$archive"
+          curl.exe --fail --location --retry 3 --output $archive $url
+          if ($LASTEXITCODE -ne 0) { throw 'Qt download failed' }
+          tar -xf $archive
+          if ($LASTEXITCODE -ne 0) { throw 'Qt extraction failed' }
+          New-Item -ItemType Directory qt-build | Out-Null
+          Push-Location qt-build
+          & "..\qtbase-everywhere-src-$env:QT_VERSION\configure.bat" -static -static-runtime -release -opensource -confirm-license -nomake examples -nomake tests -no-opengl -no-icu -no-openssl -prefix $env:QT_STATIC
+          if ($LASTEXITCODE -ne 0) { throw 'Qt configure failed' }
+          cmake --build . --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw 'Qt build failed' }
+          cmake --install .
+          if ($LASTEXITCODE -ne 0) { throw 'Qt install failed' }
+          Pop-Location
+      - name: Configure application
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$env:QT_STATIC" -DVOIDTUNNEL_STATIC_RUNTIME=ON
+      - name: Build application
+        run: cmake --build build --parallel 4
       - name: Test
-        run: ctest --test-dir build -C Release --output-on-failure
+        run: ctest --test-dir build --output-on-failure
+      - name: Check DLL dependencies
+        shell: pwsh
+        run: |
+          $deps = (& dumpbin /dependents build\VoidTunnel.exe | Out-String)
+          Write-Output $deps
+          if ($deps -match '(?i)(Qt6[^\s]*\.dll|VCRUNTIME[^\s]*\.dll|MSVCP[^\s]*\.dll)') {
+            throw 'Unexpected Qt or Visual C++ runtime DLL dependency'
+          }
       - uses: actions/upload-artifact@v4
         with:
-          name: VoidTunnel-Windows-x64
-          path: build/Release/
+          name: VoidTunnel-Windows-x64-portable
+          path: build/VoidTunnel.exe
+          if-no-files-found: error

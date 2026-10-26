@@ -378,6 +378,21 @@ public:
         auto *logToggle = new QToolButton; logToggle->setText("Log"); logToggle->setCheckable(true);
         logToggle->setToolButtonStyle(Qt::ToolButtonTextBesideIcon); logToggle->setArrowType(Qt::RightArrow);
         logBar->addWidget(logToggle); logBar->addStretch();
+        auto *about = new QToolButton; about->setText("About"); logBar->addWidget(about);
+        connect(about, &QToolButton::clicked, this, [this] {
+            QMessageBox box(this); box.setWindowTitle("About VoidTunnel");
+            box.setTextFormat(Qt::RichText);
+            box.setText(QString("VoidTunnel 1.0<br>Built with Qt %1 (LGPLv3).<br><br>"
+                        "<a href='https://github.com/justillhackyou/VoidTunnel'>Application source and build scripts</a><br>"
+                        "<a href='https://download.qt.io/official_releases/qt/6.8/6.8.3/submodules/qtbase-everywhere-src-6.8.3.tar.xz'>Qt source code</a><br>"
+                        "<a href='https://doc.qt.io/qt-6/licenses-used-in-qt.html'>Qt third-party notices</a><br><br>"
+                        "You may rebuild and relink VoidTunnel with a modified Qt.").arg(qVersion()));
+            QString text;
+            for (const QString &path : {QString(":/licenses/LGPL-3.0-only.txt"), QString(":/licenses/GPL-3.0-only.txt")}) {
+                QFile f(path); if (f.open(QIODevice::ReadOnly)) text += QString::fromUtf8(f.readAll()) + "\n\n";
+            }
+            box.setDetailedText(text); box.exec();
+        });
         auto *clear = new QPushButton("Clear"); clear->hide(); logBar->addWidget(clear); outer->addLayout(logBar);
         logs = new QPlainTextEdit; logs->setReadOnly(true); logs->setMaximumBlockCount(2000);
         logs->setFixedHeight(120); logs->hide(); outer->addWidget(logs);

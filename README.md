@@ -19,7 +19,9 @@ C:\Qt\6.8.3\msvc2022_64\bin\windeployqt.exe --release build\Release\VoidTunnel.e
 ctest --test-dir build -C Release --output-on-failure
 ```
 
-Run `build\Release\VoidTunnel.exe`. GitHub Actions also builds a Windows ZIP artifact.
+Run `build\Release\VoidTunnel.exe`. This local build uses Qt DLLs.
+
+For a single EXE, download **VoidTunnel-Windows-x64-portable** from the latest successful [Actions run](https://github.com/justillhackyou/VoidTunnel/actions). It links Qt and the MSVC runtime statically. Windows OpenSSH Client is still required. The first CI build compiles Qt; later runs reuse a cache.
 
 ## Use
 
@@ -30,3 +32,7 @@ Remote `2222` → local `1111` forwards the server's port 2222 to port 1111 on y
 The default bind address, `127.0.0.1`, allows access from the server itself. Public access requires `0.0.0.0`, `GatewayPorts clientspecified` in sshd, and an open firewall port. The server must allow remote forwarding.
 
 Profiles and host keys: `%LOCALAPPDATA%\VoidTunnel\VoidTunnel`. Save edits before switching profiles. Interactive MFA is not supported.
+
+## Static build
+
+The Windows workflow downloads Qt 6.8.3, builds it with `-static -static-runtime`, then builds VoidTunnel with `VOIDTUNNEL_STATIC_RUNTIME=ON`. The workflow contains the full build commands. Only Windows system DLLs are needed beside the EXE. Qt is used under LGPLv3; its license and source links are included under **About**. The application source and build scripts are available here for rebuilding with a modified Qt.
